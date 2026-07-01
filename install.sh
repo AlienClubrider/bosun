@@ -49,12 +49,29 @@ EOF
   exit 1
 fi
 
+echo "==> Fetching Bosun"
+
+# A one-line `curl | bash` only ever has this script itself in hand — not the
+# rest of the repo — so fetch a fresh copy of it into a temp dir rather than
+# assuming brain/ and hooks/ sit next to us on disk.
+if command -v git >/dev/null 2>&1; then
+  BOSUN_SRC="$(mktemp -d)"
+  trap 'rm -rf "$BOSUN_SRC"' EXIT
+  git clone --depth 1 -q https://github.com/AlienClubrider/bosun.git "$BOSUN_SRC" || {
+    echo "error: failed to clone https://github.com/AlienClubrider/bosun.git" >&2
+    exit 1
+  }
+else
+  echo "error: git is required to install Bosun" >&2
+  exit 1
+fi
+
 echo "==> Installing Bosun brain to $BOSUN_HOME"
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 mkdir -p "$BOSUN_HOME"
-cp -R "$SCRIPT_DIR/brain" "$BOSUN_HOME/brain"
-cp -R "$SCRIPT_DIR/hooks" "$BOSUN_HOME/hooks"
+rm -rf "$BOSUN_HOME/brain" "$BOSUN_HOME/hooks"
+cp -R "$BOSUN_SRC/brain" "$BOSUN_HOME/brain"
+cp -R "$BOSUN_SRC/hooks" "$BOSUN_HOME/hooks"
 chmod +x "$BOSUN_HOME"/hooks/*.sh
 mkdir -p "$BOSUN_HOME/recipes" "$BOSUN_HOME/no-mistakes"
 
@@ -66,7 +83,7 @@ else
   mkdir -p "$HOME/.local/bin"
   INSTALL_BIN="$HOME/.local/bin/bosun"
 fi
-cp "$SCRIPT_DIR/bosun" "$INSTALL_BIN"
+cp "$BOSUN_SRC/bosun" "$INSTALL_BIN"
 chmod +x "$INSTALL_BIN"
 
 case ":$PATH:" in
