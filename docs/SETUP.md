@@ -68,11 +68,36 @@ Bosun is active in this project. Run `dot-agent-deck` to start.
 This writes `.dot-agent-deck.toml` to the project root and adds it to
 `.git/info/exclude` — check `git status`, it shows nothing new.
 
-By default all three roles (orchestrator, coder, scout) run on `claude`. Override per role:
+Run it in a terminal with no flags and it asks which agent to use, showing the default so
+you actually see the choice instead of it silently picking one for you:
+
+```
+Agent command to run for each role [claude --permission-mode bypassPermissions]:
+```
+
+Press enter to accept the default, or type something else — `opencode`, `claude --model
+opus`, whatever you run. Set it non-interactively instead with `--agent <cmd>` (all three
+roles) or per role:
 
 ```sh
+bosun init --agent "opencode --model gpt-4o"
 bosun init --orchestrator-cmd "claude --model opus" --coder-cmd "claude --model sonnet"
 ```
+
+dot-agent-deck's own new-pane form has a Command field, but it's ignored for orchestration
+tabs — each role's pane always launches with the command fixed in `.dot-agent-deck.toml`
+(that's dot-agent-deck's own design, not something Bosun can change). So the agent choice
+happens once, here, at `bosun init` time — not at launch time in the TUI.
+
+**Why `bypassPermissions` by default.** Workers run unattended in their own disposable
+worktree — nobody's watching that pane to answer a permission prompt, and there's no way for
+the orchestrator to answer one on a worker's behalf (they're separate processes; dot-agent-deck
+only relays explicit `work-done` signals, not tool-approval dialogs). Without it, a coder can
+sit forever waiting on a question nobody will ever see. The worktree isolation plus
+`POLICY.md`'s own "never merge, never push, nothing outside the worktree" rules are the actual
+safety net instead of an interactive prompt. If you want a role to ask before acting, override
+its command without that flag (e.g. `--orchestrator-cmd claude` for just the pane you're
+watching directly).
 
 Re-running `bosun init` after editing `~/.bosun/brain/FIRSTMATE.md` or `POLICY.md` regenerates
 the project config with your changes — it's safe to re-run any time.

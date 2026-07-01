@@ -40,6 +40,11 @@ answers you directly instead of delegating.
   one orchestrator role (the first mate) and worker roles (`coder`, `scout`). The orchestrator
   delegates with `dot-agent-deck delegate --to <role> --task "..."`; a worker signals
   completion with `dot-agent-deck work-done`.
+- **Coder vs scout.** `coder` changes things — implements, fixes, refactors — and its
+  deliverable is a committed change in its own worktree. `scout` only investigates — reproduces
+  a bug, researches an approach, audits something — and its deliverable is a written report
+  back to the orchestrator; it never edits a file or opens a PR. The orchestrator decides which
+  one fits your request.
 - **Isolation.** Since dot-agent-deck doesn't isolate workers into their own worktrees, the
   coder role's standing instructions have it create one itself via `wt switch -c` before
   touching any file.

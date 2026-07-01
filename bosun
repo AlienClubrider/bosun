@@ -12,6 +12,11 @@ usage: bosun <command>
 
 commands:
   init      generate .dot-agent-deck.toml for the current project
+            --agent <cmd>             agent command for all three roles
+            --orchestrator-cmd <cmd>  override just the orchestrator
+            --coder-cmd <cmd>         override just the coder
+            --scout-cmd <cmd>         override just the scout
+            (run with no flags in a terminal to be asked interactively)
   status    show whether Bosun is active here and its no-mistakes config state
 EOF
   exit 1
@@ -48,15 +53,37 @@ render_template() {
 cmd_init() {
   require_brain
 
-  local orch_cmd=claude coder_cmd=claude scout_cmd=claude
+  local agent="" orch_cmd="" coder_cmd="" scout_cmd=""
   while [ $# -gt 0 ]; do
     case "$1" in
+      --agent) agent="$2"; shift 2 ;;
       --orchestrator-cmd) orch_cmd="$2"; shift 2 ;;
       --coder-cmd) coder_cmd="$2"; shift 2 ;;
       --scout-cmd) scout_cmd="$2"; shift 2 ;;
       *) echo "error: unknown flag $1" >&2; exit 1 ;;
     esac
   done
+
+  # Workers run autonomously in their own disposable worktree, so the
+  # default trusts them the way a launched CLI agent normally isn't:
+  # bypassPermissions, so routine actions (creating the worktree, running
+  # tests, running no-mistakes) don't block on a prompt sitting in a pane
+  # nobody's watching. The worktree, plus POLICY.md's own "never merge,
+  # never push, nothing outside the worktree" rules, are the safety net
+  # instead. Override with --orchestrator-cmd/--coder-cmd/--scout-cmd (or
+  # --agent for all three) if you want tighter control on a given role.
+  local default_cmd="claude --permission-mode bypassPermissions"
+  [ -n "$agent" ] && default_cmd="$agent"
+
+  if [ -z "$agent" ] && [ -z "$orch_cmd" ] && [ -z "$coder_cmd" ] && [ -z "$scout_cmd" ] && [ -t 0 ]; then
+    printf 'Agent command to run for each role [%s]: ' "$default_cmd" >&2
+    read -r reply
+    [ -n "$reply" ] && default_cmd="$reply"
+  fi
+
+  orch_cmd="${orch_cmd:-$default_cmd}"
+  coder_cmd="${coder_cmd:-$default_cmd}"
+  scout_cmd="${scout_cmd:-$default_cmd}"
 
   if ! git rev-parse --git-dir >/dev/null 2>&1; then
     echo "error: not a git repository" >&2
