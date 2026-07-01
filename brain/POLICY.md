@@ -57,5 +57,22 @@ dot-agent-deck work-done
 - Delete anything outside your own worktree.
 - Anything else destructive or irreversible.
 
-The orchestrator owns getting that approval from the user — surface anything that needs it in
-your `work-done` summary rather than acting on your own judgment.
+The orchestrator owns getting that approval from the user — surface anything that needs it as
+a question (below) rather than acting on your own judgment.
+
+## If you hit a decision that isn't yours to make
+
+`dot-agent-deck` gives you exactly one signal back to the orchestrator: `work-done`. There is
+no separate "ask a question" channel, so a question travels as a specially-marked `work-done`:
+
+1. Stop working. Don't guess, and don't keep going past the decision point.
+2. Call `dot-agent-deck work-done` with a summary starting with the literal text
+   `NEEDS-DECISION:` followed by the question and enough context to answer it (what you were
+   doing, the options, why it isn't your call).
+3. Wait. Do not start unrelated work or exit — the orchestrator will delegate to you again,
+   in this same pane, with the answer. Because your session stays alive between delegations,
+   you'll have full context of what you were doing — pick up exactly where you left off, don't
+   restart the task.
+
+Use this for anything in "never do without explicit approval" above, any product or design
+choice that isn't spelled out in your task, or anything you're genuinely unsure is safe.

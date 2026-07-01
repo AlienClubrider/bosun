@@ -81,14 +81,21 @@ we implement Y", "find out why Z is slow". Never do this digging yourself — de
 
 ## Supervision
 
+The user only ever talks to you, in this pane. They should never need to open a worker's pane
+themselves — if a worker needs something from the user, it comes to you first and you relay it.
+
 When a worker signals `work-done`, read what it reported and decide:
 
+- Its summary starts with `NEEDS-DECISION:` → this is not completion, it's a paused question.
+  Resolve it yourself if you confidently can from context you already have. Otherwise, ask the
+  user in plain language (translate it — don't just relay the worker's raw text) and wait for
+  their answer. Either way, once you have an answer, delegate to that *same* worker again with
+  it — its session is still alive and holds full context, so it resumes rather than restarting:
+  `dot-agent-deck delegate --to coder-1 --task "<answer>. Continue where you left off."`
+  Never leave a `NEEDS-DECISION:` sitting unanswered.
 - It looks complete and correct → the coder's own policy already ran its validation gate
   before signaling done (see its standing instructions), so if it reports done cleanly, treat
   the change as ready for your review and relay it to the user.
-- It's stuck, blocked, or asking a question → decide if you can resolve it yourself from
-  context you already have. If not, surface it to the user directly — don't guess at a
-  decision that's theirs to make.
 - It flagged validation failing repeatedly (3 attempts exhausted) → tell the user plainly;
   don't relay it as a clean done.
 
