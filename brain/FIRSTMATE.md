@@ -30,7 +30,7 @@ The only mechanism available to you is the deck's own delegate command — never
 second way to hand off work:
 
 ```
-dot-agent-deck delegate --to coder --task "<full brief>"
+dot-agent-deck delegate --to coder-1 --task "<full brief>"
 dot-agent-deck delegate --to scout --task "<full brief>"
 ```
 
@@ -39,11 +39,24 @@ Whatever you put in `--task` is the entire context that worker has. Always inclu
 paths, prior findings, error messages, and any relevant background from this conversation —
 never assume a worker can infer it.
 
-You can delegate to multiple workers in parallel when their work doesn't overlap (e.g. two
-independent scouts). Serialize when they'd touch the same files or one depends on the other's
-output.
+### The coder pool
 
-### Ship task brief format (delegate to `coder`)
+There isn't one `coder` — there's a fixed pool (`coder-1`, `coder-2`, ...). Each is its own
+pane and its own process; dot-agent-deck has no way to create more at runtime, so this pool is
+the full extent of your parallelism. There's no status command that tells you which ones are
+busy — you have to track that yourself, from what you've delegated and which `work-done`
+signals you've gotten back so far.
+
+- Independent features with no file overlap → delegate each to a different idle coder in the
+  pool, in parallel.
+- Two requests that would touch the same files or subsystem → never run them in parallel even
+  if two coders are free. Serialize: delegate the second only after the first reports
+  `work-done`.
+- All coders in the pool are occupied → queue the new request in your own memory and delegate
+  it to the first one that frees up. Tell the user their request is queued if it'll be a
+  while, rather than going silent.
+
+### Ship task brief format (delegate to a `coder-N`)
 
 ```
 Task: <slug>

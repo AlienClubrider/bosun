@@ -12,10 +12,11 @@ usage: bosun <command>
 
 commands:
   init      generate .dot-agent-deck.toml for the current project
-            --agent <cmd>             agent command for all three roles
+            --agent <cmd>             agent command for all roles
             --orchestrator-cmd <cmd>  override just the orchestrator
-            --coder-cmd <cmd>         override just the coder
+            --coder-cmd <cmd>         override just the coder pool
             --scout-cmd <cmd>         override just the scout
+            --coder-pool-size <N>     number of parallel coder roles (default: 4)
             (run with no flags in a terminal to be asked interactively)
   status    show whether Bosun is active here and its no-mistakes config state
 EOF
@@ -34,15 +35,34 @@ repo_name() {
   basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 }
 
+coder_role_block() {
+  local name="$1" coder_cmd="$2"
+  cat <<EOF
+[[orchestrations.roles]]
+name = "$name"
+command = "$coder_cmd"
+description = "Implements features, fixes bugs, refactors code. Isolates its work in its own worktrunk worktree before touching files, and self-validates before signaling done."
+prompt_template = """
+$(cat "$BOSUN_HOME/brain/POLICY.md")
+"""
+
+EOF
+}
+
 render_template() {
-  local template="$1" orch_cmd="$2" coder_cmd="$3" scout_cmd="$4"
+  local template="$1" orch_cmd="$2" coder_cmd="$3" scout_cmd="$4" pool_size="$5"
   while IFS='' read -r line || [ -n "$line" ]; do
     case "$line" in
       __ORCHESTRATOR_PROMPT__) cat "$BOSUN_HOME/brain/FIRSTMATE.md" ;;
-      __CODER_PROMPT__) cat "$BOSUN_HOME/brain/POLICY.md" ;;
+      __CODER_POOL__)
+        local i=1
+        while [ "$i" -le "$pool_size" ]; do
+          coder_role_block "coder-$i" "$coder_cmd"
+          i=$((i + 1))
+        done
+        ;;
       *)
         line="${line//__ORCHESTRATOR_COMMAND__/$orch_cmd}"
-        line="${line//__CODER_COMMAND__/$coder_cmd}"
         line="${line//__SCOUT_COMMAND__/$scout_cmd}"
         printf '%s\n' "$line"
         ;;
@@ -53,16 +73,21 @@ render_template() {
 cmd_init() {
   require_brain
 
-  local agent="" orch_cmd="" coder_cmd="" scout_cmd=""
+  local agent="" orch_cmd="" coder_cmd="" scout_cmd="" pool_size=4
   while [ $# -gt 0 ]; do
     case "$1" in
       --agent) agent="$2"; shift 2 ;;
       --orchestrator-cmd) orch_cmd="$2"; shift 2 ;;
       --coder-cmd) coder_cmd="$2"; shift 2 ;;
       --scout-cmd) scout_cmd="$2"; shift 2 ;;
+      --coder-pool-size) pool_size="$2"; shift 2 ;;
       *) echo "error: unknown flag $1" >&2; exit 1 ;;
     esac
   done
+
+  case "$pool_size" in
+    ''|*[!0-9]*|0) echo "error: --coder-pool-size must be a positive integer" >&2; exit 1 ;;
+  esac
 
   # Workers run autonomously in their own disposable worktree, so the
   # default trusts them the way a launched CLI agent normally isn't:
@@ -96,7 +121,7 @@ cmd_init() {
     exit 1
   fi
 
-  render_template "$BOSUN_HOME/brain/dot-agent-deck.toml" "$orch_cmd" "$coder_cmd" "$scout_cmd" > "$out"
+  render_template "$BOSUN_HOME/brain/dot-agent-deck.toml" "$orch_cmd" "$coder_cmd" "$scout_cmd" "$pool_size" > "$out"
 
   local exclude_file exclude_line
   exclude_file="$(git rev-parse --git-dir)/info/exclude"

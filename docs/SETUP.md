@@ -76,12 +76,20 @@ Agent command to run for each role [claude --permission-mode bypassPermissions]:
 ```
 
 Press enter to accept the default, or type something else — `opencode`, `claude --model
-opus`, whatever you run. Set it non-interactively instead with `--agent <cmd>` (all three
-roles) or per role:
+opus`, whatever you run. Set it non-interactively instead with `--agent <cmd>` (all roles) or
+per role:
 
 ```sh
 bosun init --agent "opencode --model gpt-4o"
 bosun init --orchestrator-cmd "claude --model opus" --coder-cmd "claude --model sonnet"
+```
+
+By default there are 4 coder roles (`coder-1`..`coder-4`) so independent features can run in
+parallel — dot-agent-deck has no way to spin up more at runtime, so this pool is fixed at
+`bosun init` time. Change the count with `--coder-pool-size`:
+
+```sh
+bosun init --coder-pool-size 6
 ```
 
 dot-agent-deck's own new-pane form has a Command field, but it's ignored for orchestration
@@ -109,9 +117,10 @@ dot-agent-deck
 ```
 
 Open a pane on the project directory, press `Ctrl+n`, and pick the `bosun` orchestration as
-the mode. The orchestrator pane starts active; `coder` and `scout` role cards appear in the
-sidebar. Talk to the orchestrator like you would a colleague — it decides for itself whether
-to answer you directly or delegate.
+the mode. The orchestrator pane starts active; `coder-1`..`coder-N` and `scout` role cards
+appear in the sidebar, all idle until delegated to. Talk to the orchestrator like you would a
+colleague — it decides for itself whether to answer you directly, delegate to a coder, or
+delegate to scout.
 
 ## Check status any time
 

@@ -9,18 +9,12 @@ name = "bosun"
 name = "orchestrator"
 command = "__ORCHESTRATOR_COMMAND__"
 start = true
-description = "The first mate. Coordinates coder and scout; never edits files or runs tests itself."
+description = "The first mate. Coordinates the coder pool and scout; never edits files or runs tests itself."
 prompt_template = """
 __ORCHESTRATOR_PROMPT__
 """
 
-[[orchestrations.roles]]
-name = "coder"
-command = "__CODER_COMMAND__"
-description = "Implements features, fixes bugs, refactors code. Isolates its work in its own worktrunk worktree before touching files, and self-validates before signaling done."
-prompt_template = """
-__CODER_PROMPT__
-"""
+__CODER_POOL__
 
 [[orchestrations.roles]]
 name = "scout"

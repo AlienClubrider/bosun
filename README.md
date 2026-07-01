@@ -31,15 +31,21 @@ dot-agent-deck
 ```
 
 Talk to your first mate in the orchestrator pane. Ask it to fix a bug or build a feature, and
-it delegates the work to a coder in an isolated worktree; ask it a planning question, and it
-answers you directly instead of delegating.
+it delegates the work to a free coder in the pool, each in its own isolated worktree; ask it a
+planning question, and it answers you directly instead of delegating.
 
 ## How it works
 
 - **Orchestrator / worker model.** dot-agent-deck's native `[[orchestrations]]` config defines
-  one orchestrator role (the first mate) and worker roles (`coder`, `scout`). The orchestrator
-  delegates with `dot-agent-deck delegate --to <role> --task "..."`; a worker signals
-  completion with `dot-agent-deck work-done`.
+  one orchestrator role (the first mate) and worker roles: a pool of coders (`coder-1`,
+  `coder-2`, ... — 4 by default, `bosun init --coder-pool-size N` to change it) plus one
+  `scout`. The orchestrator delegates with `dot-agent-deck delegate --to <role> --task "..."`;
+  a worker signals completion with `dot-agent-deck work-done`.
+- **Why a pool.** dot-agent-deck's roles are static — each one is exactly one pane, fixed in
+  the config, with no way to spin up more at runtime. A pool of coders is how independent
+  features actually run in parallel instead of queueing behind a single coder; the
+  orchestrator tracks which ones are free itself and serializes anything that would touch the
+  same files.
 - **Coder vs scout.** `coder` changes things — implements, fixes, refactors — and its
   deliverable is a committed change in its own worktree. `scout` only investigates — reproduces
   a bug, researches an approach, audits something — and its deliverable is a written report
